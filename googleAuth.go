@@ -1,23 +1,8 @@
-/*
-
-App that connects to Gmail via gmail api and lists all messages and their To, From, Cc
-
-Resources:
-
-https://developers.google.com/gmail/api/quickstart/go
-https://console.developers.google.com
-https://godoc.org/google.golang.org/api/gmail/v1
-https://tools.ietf.org/html/rfc4021
-
-
-*/
-
 package main
 
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -27,9 +12,28 @@ import (
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+
+	"io/ioutil"
+
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/gmail/v1"
 )
+
+func getGmailConfig() (*oauth2.Config, error) {
+
+	b, err := ioutil.ReadFile("client_secret.json")
+	if err != nil {
+		return nil, err
+	}
+
+	config, err := google.ConfigFromJSON(b, gmail.GmailReadonlyScope)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
+
+}
 
 // getClient uses a Context and Config to retrieve a Token
 // then generate a Client. It returns the generated Client.
@@ -50,8 +54,14 @@ func getClient(ctx context.Context, config *oauth2.Config) *http.Client {
 // It returns the retrieved Token.
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser then type the "+
-		"authorization code: \n%v\n", authURL)
+	fmt.Println("#########################")
+	fmt.Println("#     Authorization     #")
+	fmt.Println("#########################")
+	fmt.Println("")
+	fmt.Printf("Open below link in your browser. Then Allow the client to access your mailbox,"+
+		"get the token and paste it below\n\n%v\n", authURL)
+	fmt.Println("")
+	fmt.Print("Paste the token here:")
 
 	var code string
 	if _, err := fmt.Scan(&code); err != nil {
@@ -101,80 +111,4 @@ func saveToken(file string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
-}
-
-func main() {
-
-	ctx := context.Background()
-
-	b, err := ioutil.ReadFile("client_secret.json")
-	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
-	}
-
-	config, err := google.ConfigFromJSON(b, gmail.GmailReadonlyScope)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-	client := getClient(ctx, config)
-
-	svc, err := gmail.New(client)
-	if err != nil {
-		log.Fatalf("Unable to retrieve gmail Client %v", err)
-	}
-
-	//get messages
-	pageToken := ""
-	for {
-
-		req := svc.Users.Messages.List("me")
-
-		if pageToken != "" {
-			req.PageToken(pageToken)
-		}
-		r, err := req.Do()
-
-		if err != nil {
-			log.Fatalf("Unable to retrieve messages: %v", err)
-		}
-
-		log.Printf("--------------")
-		log.Printf("Processing %v messages...\n", len(r.Messages))
-		for _, m := range r.Messages {
-
-			msg, err := svc.Users.Messages.Get("me", m.Id).Do()
-			if err != nil {
-				log.Fatalf("Unable to retrieve message %v: %v", m.Id, err)
-			}
-
-			for _, h := range msg.Payload.Headers {
-				//fmt.Println(h.Name + ":" + h.Value)
-
-				if h.Name == "Subject" {
-
-					log.Println("Subject:" + h.Value)
-
-				} else if h.Name == "From" {
-
-					log.Println("From:" + h.Value)
-
-				} else if h.Name == "To" {
-
-					log.Println("To:" + h.Value)
-
-				} else if h.Name == "Cc" {
-
-					log.Println("Cc:" + h.Value)
-				}
-
-			}
-			fmt.Println("\n")
-
-		}
-
-		if r.NextPageToken == "" {
-			break
-		}
-		pageToken = r.NextPageToken
-	}
 }
