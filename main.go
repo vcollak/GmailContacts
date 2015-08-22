@@ -17,7 +17,71 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/mail"
+	"strconv"
+	"strings"
+	"time"
 )
+
+//converts the UNIX epoch string to a time
+func msToTime(ms string) (time.Time, error) {
+	msInt, err := strconv.ParseInt(ms, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Unix(0, msInt*int64(time.Millisecond)), nil
+}
+
+//returns the last date we processed
+func getLastDate() string {
+
+	//set the last known date
+	layout := "2006/01/02"              //just a format date
+	lastKnownDateString := "2015/08/15" //the date we want to set
+	lastKnownDate, err := time.Parse(layout, lastKnownDateString)
+
+	if err != nil {
+		log.Fatalln("Error parsing dates", err)
+	}
+
+	//convert the date to string
+	lastDateString := strconv.Itoa(lastKnownDate.Year()) + "/" + strconv.Itoa(int(lastKnownDate.Month())) + "/" + strconv.Itoa(lastKnownDate.Day())
+
+	return lastDateString
+
+}
+
+//see if the email is one of the known emails
+func isKnownEmail(email string) bool {
+
+	knownEmails := []string{"vlad@collak.net", "vcollak@gmail.com", "vcollak@ignitedev.com", "info@slovacihouston.com", "vlad@openkloud.com"}
+	for _, e := range knownEmails {
+
+		if strings.ToUpper(email) == strings.ToUpper(e) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func parseAndSave(headerValue string) {
+
+	e, err := mail.ParseAddress(headerValue)
+	if err != nil {
+		log.Println("Unable to parse:", headerValue)
+	} else {
+
+		name := e.Name
+		email := e.Address
+
+		if !isKnownEmail(email) {
+			saveContact(name, email)
+		}
+
+	}
+}
 
 func main() {
 
@@ -30,8 +94,7 @@ func main() {
 	pageToken := ""
 	for {
 
-		req := svc.Users.Messages.List("me")
-
+		req := svc.Users.Messages.List("me").Q("after: " + getLastDate())
 		if pageToken != "" {
 			req.PageToken(pageToken)
 		}
@@ -50,27 +113,37 @@ func main() {
 				log.Fatalf("Unable to retrieve message %v: %v", m.Id, err)
 			}
 
+			internalDate, err := msToTime(strconv.FormatInt(msg.InternalDate, 10))
+			if err != nil {
+				log.Fatalln("Unable to parse message date", err)
+			}
+
+			//message date
+			fmt.Println(internalDate)
+
 			for _, h := range msg.Payload.Headers {
+
+				//prints all header values
 				//fmt.Println(h.Name + ":" + h.Value)
 
-				if h.Name == "Subject" {
+				if h.Name == "From" {
 
-					log.Println("Subject:" + h.Value)
-
-				} else if h.Name == "From" {
-
-					log.Println("From:" + h.Value)
+					fmt.Println("From:" + h.Value)
+					parseAndSave(h.Value)
 
 				} else if h.Name == "To" {
 
-					log.Println("To:" + h.Value)
+					fmt.Println("To:" + h.Value)
+					parseAndSave(h.Value)
 
 				} else if h.Name == "Cc" {
 
-					log.Println("Cc:" + h.Value)
+					fmt.Println("Cc:" + h.Value)
+					parseAndSave(h.Value)
 				}
 
 			}
+
 			fmt.Println("")
 
 		}
@@ -79,5 +152,17 @@ func main() {
 			break
 		}
 		pageToken = r.NextPageToken
+
+		//break
+
 	}
+
+	/*
+		//set the last known date
+		layout := "2006/01/02" //just a format date
+		lastKnownDateString := time.Now().String()
+		lastKnownDate, err := time.Parse(layout, lastKnownDateString)
+		saveLastDate(lastKnownDate.String())
+	*/
+
 }
