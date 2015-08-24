@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"google.golang.org/api/gmail/v1"
 	"log"
 	"net/mail"
 	"strconv"
@@ -36,19 +37,12 @@ func msToTime(ms string) (time.Time, error) {
 //returns the last date we processed
 func getLastDate() string {
 
-	//set the last known date
-	layout := "2006/01/02"              //just a format date
-	lastKnownDateString := "2015/08/15" //the date we want to set
-	lastKnownDate, err := time.Parse(layout, lastKnownDateString)
-
+	lastDate, err := getLastDateFromMongo()
 	if err != nil {
-		log.Fatalln("Error parsing dates", err)
+		log.Println("Unable to get last date from DB. Error:", err)
 	}
 
-	//convert the date to string
-	lastDateString := strconv.Itoa(lastKnownDate.Year()) + "/" + strconv.Itoa(int(lastKnownDate.Month())) + "/" + strconv.Itoa(lastKnownDate.Day())
-
-	return lastDateString
+	return lastDate
 
 }
 
@@ -94,7 +88,16 @@ func main() {
 	pageToken := ""
 	for {
 
-		req := svc.Users.Messages.List("me").Q("after: " + getLastDate())
+		var req *gmail.UsersMessagesListCall
+		lastDate := getLastDate()
+		if lastDate == "" {
+			log.Println("Retrieving all messages.")
+			req = svc.Users.Messages.List("me")
+		} else {
+			log.Println("Retrieving messages starting on", lastDate)
+			req = svc.Users.Messages.List("me").Q("after: " + lastDate)
+		}
+
 		if pageToken != "" {
 			req.PageToken(pageToken)
 		}
@@ -140,6 +143,8 @@ func main() {
 
 					fmt.Println("Cc:" + h.Value)
 					parseAndSave(h.Value)
+				} else if h.Name == "Subject" {
+					fmt.Println("Subject:" + h.Value)
 				}
 
 			}
@@ -157,12 +162,9 @@ func main() {
 
 	}
 
-	/*
-		//set the last known date
-		layout := "2006/01/02" //just a format date
-		lastKnownDateString := time.Now().String()
-		lastKnownDate, err := time.Parse(layout, lastKnownDateString)
-		saveLastDate(lastKnownDate.String())
-	*/
+	//set the last known date
+	t := time.Now()
+	currentDate := t.Format("2006/01/02")
+	err = updateLastDateInMongo(currentDate)
 
 }

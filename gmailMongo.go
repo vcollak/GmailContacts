@@ -10,8 +10,10 @@ type Person struct {
 	Email string
 }
 
-type LastDate struct {
-	lastDate string
+type Settings struct {
+	ID        bson.ObjectId `bson:"_id,omitempty"`
+	LastSaved string        `bson:"LastSaved"`
+	Account   string        `bson:"Account"`
 }
 
 const (
@@ -19,6 +21,10 @@ const (
 	mongoDB                 = "gmailContacts"
 	mongoContactsCollection = "contacts"
 	mongoSettingsCollection = "settings"
+)
+
+const (
+	accountName = "vcollak@gmail.com"
 )
 
 func getLastDateFromMongo() (string, error) {
@@ -30,18 +36,45 @@ func getLastDateFromMongo() (string, error) {
 	defer session.Close()
 
 	// Optional. Switch the session to a monotonic behavior.
-	session.SetMode(mgo.Monotonic, true)
+	//	session.SetMode(mgo.Monotonic, true)
 
 	//get a session
 	c := session.DB(mongoDB).C(mongoSettingsCollection)
 
-	result := ""
-	err = c.Find(bson.M{"email": "vcollak@gmail.com"}).Select(bson.M{"lastDate": 0}).One(&result)
+	result := Settings{}
+	err = c.Find(bson.M{"Account": accountName}).Select(bson.M{"LastSaved": 1}).One(&result)
 	if err != nil {
 		return "", err
+	} else {
+		return result.LastSaved, nil
+
 	}
 
-	return result, nil
+}
+
+func updateLastDateInMongo(lastSaved string) error {
+
+	session, err := mgo.Dial(mongoServer)
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	// Optional. Switch the session to a monotonic behavior.
+	//	session.SetMode(mgo.Monotonic, true)
+
+	//get a session
+	c := session.DB(mongoDB).C(mongoSettingsCollection)
+
+	// Update
+	colQuerier := bson.M{"Account": accountName}
+	change := bson.M{"$set": bson.M{"LastSaved": lastSaved}}
+	err = c.Update(colQuerier, change)
+	if err != nil {
+		return err
+	}
+
+	return nil
 
 }
 
