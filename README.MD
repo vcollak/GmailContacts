@@ -1,13 +1,13 @@
 # Google Contacts
 
-Utility that will extract all contacts from Gmail emails. It takes any emails from To, Cc and saves them into a database. Each time the utility is executed it will scan only new email (email the utility has not seen yet) and add the contact as a new contact if it's not already in the DB
+Utility that will extract all contacts from Gmail emails. It takes From, To, and Cc fields and saves them into a database. Each time the utility is executed it will scan only new email (email the utility has not seen yet) and add the contact as a new contact if it's not already in the DB
 
 ### Parsed fields from email:
 The utility parses below fields from email:
 
 - To - to email address
 - From - from
-- Cc
+- Cc - Cc
 
 If the email already exists in the DB, the utility will ignore it and not add or update it. Otherwise it will add it.
 
@@ -17,12 +17,11 @@ The utility saves below DB columns:
 
 Contacts
 - email (from To, From, Cc)
-- first name (from To, From, Cc)
-- last name (from To, From, Cc)
+- name (name of the contact)
 
 Settings
-- lastMessageId - internalDate field in Gmail. The internal message creation timestamp (epoch ms), which determines ordering in the inbox. For normal SMTP-received email, this represents the time the message was originally accepted by Google, which is more reliable than the Date header. However, for API-migrated mail, it can be configured by client to be based on the Date header. This is used to we only check messages after this date and don't constantly check the entire mailbox.
-
+- LastSaved - last message date the utility processed. It uses message internalDate field from Gmail. The internal message creation timestamp (epoch ms), which determines ordering in the inbox. For normal SMTP-received email, this represents the time the message was originally accepted by Google, which is more reliable than the Date header. However, for API-migrated mail, it can be configured by client to be based on the Date header. This is used to we only check messages after this date and don't constantly check the entire mailbox.
+- Account - the acocunt name for the setting
 
 
 

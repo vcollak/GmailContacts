@@ -86,6 +86,8 @@ func main() {
 
 	//get messages
 	pageToken := ""
+	var lastMessageRetrievedDate time.Time
+
 	for {
 
 		var req *gmail.UsersMessagesListCall
@@ -116,13 +118,13 @@ func main() {
 				log.Fatalf("Unable to retrieve message %v: %v", m.Id, err)
 			}
 
-			internalDate, err := msToTime(strconv.FormatInt(msg.InternalDate, 10))
+			lastMessageRetrievedDate, err := msToTime(strconv.FormatInt(msg.InternalDate, 10))
 			if err != nil {
 				log.Fatalln("Unable to parse message date", err)
 			}
 
 			//message date
-			fmt.Println(internalDate)
+			fmt.Println(lastMessageRetrievedDate)
 
 			for _, h := range msg.Payload.Headers {
 
@@ -163,8 +165,7 @@ func main() {
 	}
 
 	//set the last known date
-	t := time.Now()
-	currentDate := t.Format("2006/01/02")
+	currentDate := lastMessageRetrievedDate.Format("2006/01/02")
 	err = updateLastDateInMongo(currentDate)
 
 }
