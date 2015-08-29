@@ -6,45 +6,65 @@ import (
 )
 
 //Contact object is saved into DB
-type Contact struct {
+type contact struct {
 	Name  string
 	Email string
 }
 
 //Settings represnts a setings table
-type Settings struct {
+type settings struct {
 	ID        bson.ObjectId `bson:"_id,omitempty"`
 	LastSaved string        `bson:"LastSaved"`
 	Account   string        `bson:"Account"`
 }
 
-const (
-	mongoServer             = "localhost:27017"
-	mongoDB                 = "gmailContacts"
-	mongoContactsCollection = "contacts"
-	mongoSettingsCollection = "settings"
-)
+type MongoDB struct {
+	/*
+		mongoServer             = "localhost:27017"
+		mongoDB                 = "gmailContacts"
+		mongoContactsCollection = "contacts"
+		mongoSettingsCollection = "settings"
+		accountName = "vcollak@gmail.com"
+	*/
 
-const (
-	accountName = "vcollak@gmail.com"
-)
+	server             string
+	db                 string
+	accountName        string
+	contactsCollection string
+	settingsCollection string
+}
 
-func getLastDateFromMongo() (string, error) {
+func NewMongo(server string, db string, accountName string) *MongoDB {
 
-	session, err := mgo.Dial(mongoServer)
+	s := MongoDB{
+		server:             server,
+		db:                 db,
+		accountName:        accountName,
+		contactsCollection: "contacts",
+		settingsCollection: "settings",
+	}
+
+	return &s
+
+}
+
+//LastDate retrieves the last message date that was processed
+func (m *MongoDB) LastDate() (string, error) {
+
+	session, err := mgo.Dial(m.server)
 	if err != nil {
 		return "", err
 	}
 	defer session.Close()
 
 	// Optional. Switch the session to a monotonic behavior.
-	//	session.SetMode(mgo.Monotonic, true)
+	session.SetMode(mgo.Monotonic, true)
 
 	//get a session
-	c := session.DB(mongoDB).C(mongoSettingsCollection)
+	c := session.DB(m.db).C(m.settingsCollection)
 
-	result := Settings{}
-	err = c.Find(bson.M{"Account": accountName}).Select(bson.M{"LastSaved": 1}).One(&result)
+	result := settings{}
+	err = c.Find(bson.M{"Account": m.accountName}).Select(bson.M{"LastSaved": 1}).One(&result)
 	if err != nil {
 		return "", err
 	} else {
@@ -54,22 +74,23 @@ func getLastDateFromMongo() (string, error) {
 
 }
 
-func updateLastDateInMongo(lastSaved string) error {
+//SetLastDate sets the last message date that was processed
+func (m *MongoDB) SetLastDate(lastSaved string) error {
 
-	session, err := mgo.Dial(mongoServer)
+	session, err := mgo.Dial(m.server)
 	if err != nil {
 		return err
 	}
 	defer session.Close()
 
 	// Optional. Switch the session to a monotonic behavior.
-	//	session.SetMode(mgo.Monotonic, true)
+	session.SetMode(mgo.Monotonic, true)
 
 	//get a session
-	c := session.DB(mongoDB).C(mongoSettingsCollection)
+	c := session.DB(m.db).C(m.settingsCollection)
 
 	// Update
-	colQuerier := bson.M{"Account": accountName}
+	colQuerier := bson.M{"Account": m.accountName}
 	change := bson.M{"$set": bson.M{"LastSaved": lastSaved}}
 	err = c.Update(colQuerier, change)
 	if err != nil {
@@ -80,9 +101,9 @@ func updateLastDateInMongo(lastSaved string) error {
 
 }
 
-func saveLastDate(date string) error {
-
-	session, err := mgo.Dial(mongoServer)
+//SetContact saves contact in DB
+func (m *MongoDB) SetContact(name string, email string) error {
+	session, err := mgo.Dial(m.server)
 	if err != nil {
 		return err
 	}
@@ -92,41 +113,16 @@ func saveLastDate(date string) error {
 	session.SetMode(mgo.Monotonic, true)
 
 	//get a session
-	c := session.DB(mongoDB).C(mongoSettingsCollection)
-
-	// Update
-	colQuerier := bson.M{"account": "vcollak@gmail.com"}
-	change := bson.M{"$set": bson.M{"lastDate": date}}
-	err = c.Update(colQuerier, change)
-	if err != nil {
-		return err
-	}
-
-	return nil
-
-}
-
-func saveContact(name string, email string) error {
-	session, err := mgo.Dial(mongoServer)
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	// Optional. Switch the session to a monotonic behavior.
-	session.SetMode(mgo.Monotonic, true)
-
-	//get a session
-	c := session.DB(mongoDB).C(mongoContactsCollection)
+	c := session.DB(m.db).C(m.contactsCollection)
 
 	//find the contact
-	result := Contact{}
+	result := contact{}
 	err = c.Find(bson.M{"email": email}).One(&result)
 	if err != nil {
 
 		//insert the contact
 
-		err = c.Insert(&Contact{name, email})
+		err = c.Insert(&contact{name, email})
 		if err != nil {
 			return err
 		}

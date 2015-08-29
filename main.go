@@ -24,6 +24,9 @@ import (
 	"time"
 )
 
+//mongo DB
+var mongo = &MongoDB{}
+
 //converts the UNIX epoch string to a time
 func msToTime(ms string) (time.Time, error) {
 	msInt, err := strconv.ParseInt(ms, 10, 64)
@@ -32,18 +35,6 @@ func msToTime(ms string) (time.Time, error) {
 	}
 
 	return time.Unix(0, msInt*int64(time.Millisecond)), nil
-}
-
-//returns the last date we processed
-func getLastDate() string {
-
-	lastDate, err := getLastDateFromMongo()
-	if err != nil {
-		log.Println("Unable to get last date from DB. Error:", err)
-	}
-
-	return lastDate
-
 }
 
 //see if the email is one of the known emails
@@ -60,7 +51,7 @@ func isKnownEmail(email string) bool {
 	return false
 }
 
-func parseAndSave(headerValue string) {
+func saveHeaderFields(headerValue string) {
 
 	e, err := mail.ParseAddress(headerValue)
 	if err != nil {
@@ -71,13 +62,17 @@ func parseAndSave(headerValue string) {
 		email := e.Address
 
 		if !isKnownEmail(email) {
-			saveContact(name, email)
+			mongo.SetContact(name, email)
 		}
 
 	}
+
 }
 
 func main() {
+
+	//get the mongo object
+	mongo = NewMongo("localhost:27017", "gmailContacts", "vcollak@gmail.com")
 
 	svc, err := getGmailClient()
 	if err != nil {
@@ -91,7 +86,7 @@ func main() {
 	for {
 
 		var req *gmail.UsersMessagesListCall
-		lastDate := getLastDate()
+		lastDate, err := mongo.LastDate()
 		if lastDate == "" {
 			log.Println("Retrieving all messages.")
 			req = svc.Users.Messages.List("me")
@@ -134,17 +129,17 @@ func main() {
 				if h.Name == "From" {
 
 					fmt.Println("From:" + h.Value)
-					parseAndSave(h.Value)
+					saveHeaderFields(h.Value)
 
 				} else if h.Name == "To" {
 
 					fmt.Println("To:" + h.Value)
-					parseAndSave(h.Value)
+					saveHeaderFields(h.Value)
 
 				} else if h.Name == "Cc" {
 
 					fmt.Println("Cc:" + h.Value)
-					parseAndSave(h.Value)
+					saveHeaderFields(h.Value)
 				} else if h.Name == "Subject" {
 					fmt.Println("Subject:" + h.Value)
 				}
@@ -166,6 +161,6 @@ func main() {
 
 	//set the last known date
 	currentDate := lastMessageRetrievedDate.Format("2006/01/02")
-	err = updateLastDateInMongo(currentDate)
+	err = mongo.SetLastDate(currentDate)
 
 }
