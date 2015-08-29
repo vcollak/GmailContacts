@@ -5,11 +5,13 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type Person struct {
+//Contact object is saved into DB
+type Contact struct {
 	Name  string
 	Email string
 }
 
+//Settings represnts a setings table
 type Settings struct {
 	ID        bson.ObjectId `bson:"_id,omitempty"`
 	LastSaved string        `bson:"LastSaved"`
@@ -118,13 +120,13 @@ func saveContact(name string, email string) error {
 	c := session.DB(mongoDB).C(mongoContactsCollection)
 
 	//find the contact
-	result := Person{}
+	result := Contact{}
 	err = c.Find(bson.M{"email": email}).One(&result)
 	if err != nil {
 
 		//insert the contact
 
-		err = c.Insert(&Person{name, email})
+		err = c.Insert(&Contact{name, email})
 		if err != nil {
 			return err
 		}
