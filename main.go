@@ -40,7 +40,7 @@ func msToTime(ms string) (time.Time, error) {
 //see if the email is one of the known emails
 func isKnownEmail(email string) bool {
 
-	knownEmails := []string{"vlad@collak.net", "vcollak@gmail.com", "vcollak@ignitedev.com", "info@slovacihouston.com", "vlad@openkloud.com"}
+	knownEmails := []string{"vlad@collak.net", "vcollak@gmail.com", "vcollak@ignitedev.com", "info@slovacihouston.com", "vlad@openkloud.com", "vladimir.collak@ignitemediallc.com", "vladimir.collak@ignitemediahosting.com"}
 	for _, e := range knownEmails {
 
 		if strings.ToUpper(email) == strings.ToUpper(e) {
@@ -101,7 +101,8 @@ func main() {
 		r, err := req.Do()
 
 		if err != nil {
-			log.Fatalf("Unable to retrieve messages: %v", err)
+			log.Printf("Unable to retrieve messages: %v", err)
+			continue
 		}
 
 		log.Printf("--------------")
@@ -110,12 +111,13 @@ func main() {
 
 			msg, err := svc.Users.Messages.Get("me", m.Id).Do()
 			if err != nil {
-				log.Fatalf("Unable to retrieve message %v: %v", m.Id, err)
+				log.Printf("Unable to retrieve message %v: %v", m.Id, err)
+				continue
 			}
 
 			lastMessageRetrievedDate, err := msToTime(strconv.FormatInt(msg.InternalDate, 10))
 			if err != nil {
-				log.Fatalln("Unable to parse message date", err)
+				log.Println("Unable to parse message date", err)
 			}
 
 			//message date
