@@ -1,6 +1,6 @@
 # Google Contacts
 
-Utility that will extract all contacts from Gmail emails. It takes From, To, and Cc fields and saves them into a database. Each time the utility is executed it will scan only new email (email the utility has not seen yet) and add the contact as a new contact if it's not already in the DB
+Utility that will extract all contacts from Gmail emails. It takes From, To, and Cc fields and saves them into a MongoDB database. Each time the utility is executed it will scan only new email (the email the utility has not processes yet) and add the contact as a new contact (if it's not already in the DB).
 
 ### Parsed fields from email:
 The utility parses below fields from email:
@@ -20,8 +20,8 @@ Contacts
 - name (name of the contact)
 
 Settings
-- LastSaved - last message date the utility processed. It uses message internalDate field from Gmail. The internal message creation timestamp (epoch ms), which determines ordering in the inbox. For normal SMTP-received email, this represents the time the message was originally accepted by Google, which is more reliable than the Date header. However, for API-migrated mail, it can be configured by client to be based on the Date header. This is used to we only check messages after this date and don't constantly check the entire mailbox.
-- Account - the acocunt name for the setting
+- lastSaved - last message date the utility processed. It uses message internalDate field from Gmail. The internal message creation timestamp (epoch ms), which determines ordering in the inbox. For normal SMTP-received email, this represents the time the message was originally accepted by Google, which is more reliable than the Date header. However, for API-migrated mail, it can be configured by client to be based on the Date header. This is used to we only check messages after this date and don't constantly check the entire mailbox.
+- account - the acocunt name for the setting
 
 
 
@@ -45,6 +45,14 @@ Once it starts, the utility will first check for security credentials. Specifica
     https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=4523535455-jdfsfsfdgg7dfadfafdfsdflltghgdk.apps.googleusercontent.com&redirect_uri=urn%3Aieaf%3Afg%3Aoauth%3A2.0%3Aoob&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly&state=state-token
 
     Paste the token here:4/CdflaksdjhfaldkfhaiC9mWGdfadhlfhaslfasdkdasd
+
+
+Resources
+-------
+https://developers.google.com/gmail/api/quickstart/go
+https://console.developers.google.com
+https://godoc.org/google.golang.org/api/gmail/v1
+https://tools.ietf.org/html/rfc4021
 
 
 Credits

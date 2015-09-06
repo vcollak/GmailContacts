@@ -3,6 +3,7 @@ package main
 import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"log"
 )
 
 //Contact object is saved into DB
@@ -14,8 +15,8 @@ type contact struct {
 //Settings represnts a setings table
 type settings struct {
 	ID        bson.ObjectId `bson:"_id,omitempty"`
-	LastSaved string        `bson:"LastSaved"`
-	Account   string        `bson:"Account"`
+	lastSaved string        `bson:"lastSaved"`
+	account   string        `bson:"account"`
 }
 
 type MongoDB struct {
@@ -68,7 +69,7 @@ func (m *MongoDB) LastDate() (string, error) {
 	if err != nil {
 		return "", err
 	} else {
-		return result.LastSaved, nil
+		return result.lastSaved, nil
 
 	}
 
@@ -90,8 +91,8 @@ func (m *MongoDB) SetLastDate(lastSaved string) error {
 	c := session.DB(m.db).C(m.settingsCollection)
 
 	// Update
-	colQuerier := bson.M{"Account": m.accountName}
-	change := bson.M{"$set": bson.M{"LastSaved": lastSaved}}
+	colQuerier := bson.M{"account": m.accountName}
+	change := bson.M{"$set": bson.M{"lastSaved": lastSaved}}
 	err = c.Update(colQuerier, change)
 	if err != nil {
 		return err
@@ -103,6 +104,7 @@ func (m *MongoDB) SetLastDate(lastSaved string) error {
 
 //SetContact saves contact in DB
 func (m *MongoDB) SetContact(name string, email string) error {
+
 	session, err := mgo.Dial(m.server)
 	if err != nil {
 		return err
@@ -110,7 +112,7 @@ func (m *MongoDB) SetContact(name string, email string) error {
 	defer session.Close()
 
 	// Optional. Switch the session to a monotonic behavior.
-	session.SetMode(mgo.Monotonic, true)
+	//session.SetMode(mgo.Monotonic, true)
 
 	//get a session
 	c := session.DB(m.db).C(m.contactsCollection)
@@ -121,14 +123,14 @@ func (m *MongoDB) SetContact(name string, email string) error {
 	if err != nil {
 
 		//insert the contact
-
 		err = c.Insert(&contact{name, email})
 		if err != nil {
 			return err
 		}
 
 	} else {
-		//do nothing. the contact already exists
+		log.Printf("Contact %s already exists", email)
+		return err
 	}
 
 	return nil

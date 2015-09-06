@@ -1,14 +1,12 @@
 /*
 
-App that connects to Gmail via gmail api and lists all messages and their To, From, Cc
+App that connects to Gmail via Gmail api and saves all emails from "To", "From", and "Cc" into a MongoDB
 
 Resources:
-
 https://developers.google.com/gmail/api/quickstart/go
 https://console.developers.google.com
 https://godoc.org/google.golang.org/api/gmail/v1
 https://tools.ietf.org/html/rfc4021
-
 
 */
 
@@ -62,7 +60,10 @@ func saveHeaderFields(headerValue string) {
 		email := e.Address
 
 		if !isKnownEmail(email) {
-			mongo.SetContact(name, email)
+			err = mongo.SetContact(name, email)
+			if err != nil {
+				log.Println("Unable to save:", headerValue)
+			}
 		}
 
 	}
@@ -72,7 +73,7 @@ func saveHeaderFields(headerValue string) {
 func main() {
 
 	//get the mongo object
-	mongo = NewMongo("localhost:27017", "gmailContacts", "vcollak@gmail.com")
+	mongo = NewMongo("127.0.0.1", "gmailContacts", "vcollak@gmail.com")
 
 	svc, err := getGmailClient()
 	if err != nil {
@@ -81,7 +82,7 @@ func main() {
 
 	//get messages
 	pageToken := ""
-	var lastMessageRetrievedDate time.Time
+	//var lastMessageRetrievedDate time.Time
 
 	for {
 
@@ -121,7 +122,7 @@ func main() {
 			}
 
 			//message date
-			fmt.Println(lastMessageRetrievedDate)
+			log.Println(lastMessageRetrievedDate)
 
 			for _, h := range msg.Payload.Headers {
 
@@ -130,25 +131,30 @@ func main() {
 
 				if h.Name == "From" {
 
-					fmt.Println("From:" + h.Value)
+					log.Println("From:" + h.Value)
 					saveHeaderFields(h.Value)
 
 				} else if h.Name == "To" {
 
-					fmt.Println("To:" + h.Value)
+					log.Println("To:" + h.Value)
 					saveHeaderFields(h.Value)
 
 				} else if h.Name == "Cc" {
 
-					fmt.Println("Cc:" + h.Value)
+					log.Println("Cc:" + h.Value)
 					saveHeaderFields(h.Value)
+
 				} else if h.Name == "Subject" {
-					fmt.Println("Subject:" + h.Value)
+					log.Println("Subject:" + h.Value)
 				}
 
 			}
 
 			fmt.Println("")
+
+			//set the last known date
+			currentDate := lastMessageRetrievedDate.Format("2006/01/02")
+			err = mongo.SetLastDate(currentDate)
 
 		}
 
@@ -160,9 +166,5 @@ func main() {
 		//break
 
 	}
-
-	//set the last known date
-	currentDate := lastMessageRetrievedDate.Format("2006/01/02")
-	err = mongo.SetLastDate(currentDate)
 
 }
