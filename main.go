@@ -82,15 +82,17 @@ func main() {
 
 	//get messages
 	pageToken := ""
-	//var lastMessageRetrievedDate time.Time
+	firstMessage := true
 
 	for {
 
 		var req *gmail.UsersMessagesListCall
 		lastDate, err := mongo.LastDate()
+
 		if lastDate == "" {
 			log.Println("Retrieving all messages.")
 			req = svc.Users.Messages.List("me")
+
 		} else {
 			log.Println("Retrieving messages starting on", lastDate)
 			req = svc.Users.Messages.List("me").Q("after: " + lastDate)
@@ -124,6 +126,20 @@ func main() {
 			//message date
 			log.Println(lastMessageRetrievedDate)
 
+			if firstMessage {
+
+				//set the last known date
+				currentDate := lastMessageRetrievedDate.Format("2006/01/02")
+				err = mongo.SetLastDate(currentDate)
+				if err != nil {
+					log.Println("Unable to save:", currentDate)
+				} else {
+					log.Println("Saved:", currentDate)
+					firstMessage = false
+				}
+
+			}
+
 			for _, h := range msg.Payload.Headers {
 
 				//prints all header values
@@ -151,10 +167,6 @@ func main() {
 			}
 
 			fmt.Println("")
-
-			//set the last known date
-			currentDate := lastMessageRetrievedDate.Format("2006/01/02")
-			err = mongo.SetLastDate(currentDate)
 
 		}
 

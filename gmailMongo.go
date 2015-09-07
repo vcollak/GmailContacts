@@ -14,9 +14,9 @@ type contact struct {
 
 //Settings represnts a setings table
 type settings struct {
-	ID        bson.ObjectId `bson:"_id,omitempty"`
-	lastSaved string        `bson:"lastSaved"`
-	account   string        `bson:"account"`
+	ID      bson.ObjectId `bson:"_id,omitempty"`
+	Saved   string
+	Account string
 }
 
 type MongoDB struct {
@@ -56,20 +56,36 @@ func (m *MongoDB) LastDate() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	defer session.Close()
 
 	// Optional. Switch the session to a monotonic behavior.
-	session.SetMode(mgo.Monotonic, true)
+	//session.SetMode(mgo.Monotonic, true)
 
 	//get a session
 	c := session.DB(m.db).C(m.settingsCollection)
 
+	/*
+		result := settings{}
+		err = c.Find(bson.M{"account": "vcollak@gmail.com"}).One(&result)
+		if err != nil {
+			panic(err)
+		}
+		log.Println("result", result)
+		log.Println("lastSaved", result.Saved)
+		log.Println("acct", result.Account)
+
+		return "", nil
+	*/
+
 	result := settings{}
-	err = c.Find(bson.M{"Account": m.accountName}).Select(bson.M{"LastSaved": 1}).One(&result)
+	err = c.Find(bson.M{"account": "vcollak@gmail.com"}).One(&result)
 	if err != nil {
+		log.Println("Did not find last saved for:", m.accountName)
 		return "", err
 	} else {
-		return result.lastSaved, nil
+		log.Printf("Found last saved for %s: %s", result.Account, result.Saved)
+		return result.Saved, nil
 
 	}
 
@@ -92,7 +108,7 @@ func (m *MongoDB) SetLastDate(lastSaved string) error {
 
 	// Update
 	colQuerier := bson.M{"account": m.accountName}
-	change := bson.M{"$set": bson.M{"lastSaved": lastSaved}}
+	change := bson.M{"$set": bson.M{"saved": lastSaved}}
 	err = c.Update(colQuerier, change)
 	if err != nil {
 		return err
@@ -120,6 +136,7 @@ func (m *MongoDB) SetContact(name string, email string) error {
 	//find the contact
 	result := contact{}
 	err = c.Find(bson.M{"email": email}).One(&result)
+	log.Println("Found contact:", result)
 	if err != nil {
 
 		//insert the contact
