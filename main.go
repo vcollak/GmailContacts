@@ -51,23 +51,26 @@ func isKnownEmail(email string) bool {
 
 func saveHeaderFields(headerValue string) {
 
-	e, err := mail.ParseAddress(headerValue)
+	emails, err := mail.ParseAddressList(headerValue)
 	if err != nil {
 		log.Println("Unable to parse:", headerValue)
 	} else {
 
-		name := e.Name
-		email := e.Address
+		for _, v := range emails {
 
-		if !isKnownEmail(email) {
-			err = mongo.SetContact(name, email)
-			if err != nil {
-				log.Println("Unable to save:", headerValue)
+			name := v.Name
+			email := v.Address
+
+			if !isKnownEmail(email) {
+				err = mongo.SetContact(name, email)
+				if err != nil {
+					log.Println("Unable to save:", email)
+				}
+			} else {
+				log.Println("Known email. Ignoring:", email)
 			}
 		}
-
 	}
-
 }
 
 func main() {
