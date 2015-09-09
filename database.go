@@ -35,8 +35,8 @@ type MongoDB struct {
 	db          string
 	accountName string
 	session     *mgo.Session
-	contacts    *contactsCollection
-	settings    *settingsCollection
+	contacts    contactsCollection
+	settings    settingsCollection
 }
 
 func (m *MongoDB) NewMongo(server string, db string, accountName string) error {
