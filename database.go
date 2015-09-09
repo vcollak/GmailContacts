@@ -20,28 +20,40 @@ type Setting struct {
 	Account string
 }
 
-type MongoDB struct {
-	server         string
-	db             string
-	accountName    string
-	collectionName string
-	session        *mgo.Session
+type contactsCollection struct {
 	collection     *mgo.Collection
+	collectionName string
 }
 
-func (m *MongoDB) NewMongo(server string, db string, accountName string, collectionName string) error {
+type settingsCollection struct {
+	collection     *mgo.Collection
+	collectionName string
+}
+
+type MongoDB struct {
+	server      string
+	db          string
+	accountName string
+	session     *mgo.Session
+	contacts    *contactsCollection
+	settings    *settingsCollection
+}
+
+func (m *MongoDB) NewMongo(server string, db string, accountName string) error {
 
 	m.server = server
 	m.db = db
 	m.accountName = accountName
-	m.collectionName = collectionName
+	m.settings.collectionName = "settings"
+	m.contacts.collectionName = "contacts"
 
 	err := errors.New("")
 	m.session, err = mgo.Dial(m.server)
 	if err != nil {
 		return err
 	} else {
-		m.collection = m.session.DB(m.db).C(m.collectionName)
+		m.settings.collection = m.session.DB(m.db).C(m.settings.collectionName)
+		m.contacts.collection = m.session.DB(m.db).C(m.contacts.collectionName)
 	}
 
 	return nil
@@ -52,7 +64,7 @@ func (m *MongoDB) NewMongo(server string, db string, accountName string, collect
 func (m *MongoDB) LastDate() (string, error) {
 
 	result := Setting{}
-	err := m.collection.Find(bson.M{"account": "vcollak@gmail.com"}).One(&result)
+	err := m.settings.collection.Find(bson.M{"account": m.accountName}).One(&result)
 	if err != nil {
 		log.Println("Did not find last saved for:", m.accountName)
 		return "", err
@@ -70,7 +82,7 @@ func (m *MongoDB) SetLastDate(lastSaved string) error {
 	// Update
 	colQuerier := bson.M{"account": m.accountName}
 	change := bson.M{"$set": bson.M{"saved": lastSaved}}
-	err := m.collection.Update(colQuerier, change)
+	err := m.settings.collection.Update(colQuerier, change)
 	if err != nil {
 		return err
 	}
@@ -84,7 +96,7 @@ func (m *MongoDB) SetContact(name string, email string) error {
 
 	//find the contact
 	result := Contact{}
-	err := m.collection.Find(bson.M{"email": email}).One(&result)
+	err := m.contacts.collection.Find(bson.M{"email": email}).One(&result)
 	log.Println("Found contact:", result)
 	if err != nil {
 
@@ -93,7 +105,7 @@ func (m *MongoDB) SetContact(name string, email string) error {
 		contact.Name = name
 		contact.Email = email
 
-		err = m.collection.Insert(contact)
+		err = m.contacts.collection.Insert(contact)
 		if err != nil {
 			return err
 		}
