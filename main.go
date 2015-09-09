@@ -23,7 +23,8 @@ import (
 )
 
 //mongo DB
-var mongo = &MongoDB{}
+var mongoContacts = new(MongoDB)
+var mongoSettings = new(MongoDB)
 
 //converts the UNIX epoch string to a time
 func msToTime(ms string) (time.Time, error) {
@@ -62,7 +63,7 @@ func saveHeaderFields(headerValue string) {
 			email := v.Address
 
 			if !isKnownEmail(email) {
-				err = mongo.SetContact(name, email)
+				err = mongoContacts.SetContact(name, email)
 				if err != nil {
 					log.Println("Unable to save:", email)
 				}
@@ -76,7 +77,12 @@ func saveHeaderFields(headerValue string) {
 func main() {
 
 	//get the mongo object
-	mongo = NewMongo("127.0.0.1", "gmailContacts", "vcollak@gmail.com")
+	mongoContacts.NewMongo("127.0.0.1", "gmailContacts", "vcollak@gmail.com", "contacts")
+	mongoSettings.NewMongo("127.0.0.1", "gmailContacts", "vcollak@gmail.com", "settings")
+
+	//close the sessions at the end
+	defer mongoContacts.session.Close()
+	defer mongoSettings.session.Close()
 
 	svc, err := getGmailClient()
 	if err != nil {
@@ -90,7 +96,7 @@ func main() {
 	for {
 
 		var req *gmail.UsersMessagesListCall
-		lastDate, err := mongo.LastDate()
+		lastDate, err := mongoSettings.LastDate()
 
 		if lastDate == "" {
 			log.Println("Retrieving all messages.")
@@ -133,7 +139,7 @@ func main() {
 
 				//set the last known date
 				currentDate := lastMessageRetrievedDate.Format("2006/01/02")
-				err = mongo.SetLastDate(currentDate)
+				err = mongoSettings.SetLastDate(currentDate)
 				if err != nil {
 					log.Println("Unable to save:", currentDate)
 				} else {
