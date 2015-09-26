@@ -39,6 +39,7 @@ type MongoDB struct {
 	settings    settingsCollection
 }
 
+//creates a new mongo DB connection
 func (m *MongoDB) NewMongo(server string, db string, accountName string) error {
 
 	m.server = server
