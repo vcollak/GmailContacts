@@ -1,4 +1,4 @@
-package main
+package mongo
 
 import (
 	"errors"
@@ -9,8 +9,9 @@ import (
 
 //Contact object is saved into DB
 type Contact struct {
-	Name  string
-	Email string
+	Name    string
+	Email   string
+	Account string
 }
 
 //Settings represnts a setings table
@@ -105,6 +106,7 @@ func (m *MongoDB) SetContact(name string, email string) error {
 		contact := &Contact{}
 		contact.Name = name
 		contact.Email = email
+		contact.Account = m.accountName
 
 		err = m.contacts.collection.Insert(contact)
 		if err != nil {
@@ -118,4 +120,9 @@ func (m *MongoDB) SetContact(name string, email string) error {
 
 	return nil
 
+}
+
+//close the db session
+func (m *MongoDB) Close() {
+	m.session.Close()
 }

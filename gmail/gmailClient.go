@@ -10,10 +10,12 @@ https://tools.ietf.org/html/rfc4021
 
 
 */
-package main
+package gmail
 
 import (
 	"fmt"
+	"github.com/vcollak/GmailContacts/db"
+	"github.com/vcollak/GmailContacts/utils"
 	"golang.org/x/net/context"
 	"google.golang.org/api/gmail/v1"
 	"log"
@@ -22,10 +24,20 @@ import (
 	"strings"
 )
 
-//mongo DB
-var db = new(MongoDB)
+type Gmail struct {
+	knownEmails []string
+	db          *mongo.MongoDB
+}
 
-func getGmailClient() (*gmail.Service, error) {
+//creates a new mongo DB connection
+func (g *Gmail) NewGmail(knownEmails []string, db *mongo.MongoDB) {
+
+	g.knownEmails = knownEmails
+	g.db = db
+
+}
+
+func (g *Gmail) getGmailClient() (*gmail.Service, error) {
 	ctx := context.Background()
 
 	config, err := getGmailConfig()
@@ -44,9 +56,9 @@ func getGmailClient() (*gmail.Service, error) {
 }
 
 //see if the email is one of the known emails
-func isKnownEmail(email string) bool {
+func (g *Gmail) isKnownEmail(email string) bool {
 
-	for _, e := range knownEmails {
+	for _, e := range g.knownEmails {
 
 		if strings.ToUpper(email) == strings.ToUpper(e) {
 			return true
@@ -56,7 +68,7 @@ func isKnownEmail(email string) bool {
 	return false
 }
 
-func saveHeaderFields(headerValue string) {
+func (g *Gmail) saveHeaderFields(headerValue string) {
 
 	emails, err := mail.ParseAddressList(headerValue)
 	if err != nil {
@@ -68,8 +80,8 @@ func saveHeaderFields(headerValue string) {
 			name := v.Name
 			email := v.Address
 
-			if !isKnownEmail(email) {
-				err = db.SetContact(name, email)
+			if !g.isKnownEmail(email) {
+				err = g.db.SetContact(name, email)
 				if err != nil {
 					log.Println("Unable to save:", email)
 				}
@@ -80,15 +92,12 @@ func saveHeaderFields(headerValue string) {
 	}
 }
 
-func processMessages() {
-
-	//get the mongo object
-	db.NewMongo(server, dbName, accountName)
+func (g *Gmail) ProcessMessages() {
 
 	//close the sessions at the end
-	defer db.session.Close()
+	defer g.db.Close()
 
-	svc, err := getGmailClient()
+	svc, err := g.getGmailClient()
 	if err != nil {
 		log.Fatal("Unable to access Gmail. Error:", err)
 	}
@@ -100,7 +109,7 @@ func processMessages() {
 	for {
 
 		var req *gmail.UsersMessagesListCall
-		lastDate, err := db.LastDate()
+		lastDate, err := g.db.LastDate()
 
 		if lastDate == "" {
 			log.Println("Retrieving all messages.")
@@ -131,7 +140,7 @@ func processMessages() {
 				continue
 			}
 
-			lastMessageRetrievedDate, err := msToTime(strconv.FormatInt(msg.InternalDate, 10))
+			lastMessageRetrievedDate, err := utils.MsToTime(strconv.FormatInt(msg.InternalDate, 10))
 			if err != nil {
 				log.Println("Unable to parse message date", err)
 			}
@@ -143,7 +152,7 @@ func processMessages() {
 
 				//set the last known date
 				currentDate := lastMessageRetrievedDate.Format("2006/01/02")
-				err = db.SetLastDate(currentDate)
+				err = g.db.SetLastDate(currentDate)
 				if err != nil {
 					log.Println("Unable to save:", currentDate)
 				} else {
@@ -161,17 +170,17 @@ func processMessages() {
 				if h.Name == "From" {
 
 					log.Println("From:" + h.Value)
-					saveHeaderFields(h.Value)
+					g.saveHeaderFields(h.Value)
 
 				} else if h.Name == "To" {
 
 					log.Println("To:" + h.Value)
-					saveHeaderFields(h.Value)
+					g.saveHeaderFields(h.Value)
 
 				} else if h.Name == "Cc" {
 
 					log.Println("Cc:" + h.Value)
-					saveHeaderFields(h.Value)
+					g.saveHeaderFields(h.Value)
 
 				} else if h.Name == "Subject" {
 					log.Println("Subject:" + h.Value)

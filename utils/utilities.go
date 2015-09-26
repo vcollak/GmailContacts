@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"strconv"
@@ -6,7 +6,7 @@ import (
 )
 
 //converts the UNIX epoch string to a time
-func msToTime(ms string) (time.Time, error) {
+func MsToTime(ms string) (time.Time, error) {
 	msInt, err := strconv.ParseInt(ms, 10, 64)
 	if err != nil {
 		return time.Time{}, err
