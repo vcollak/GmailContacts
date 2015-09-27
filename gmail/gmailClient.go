@@ -13,6 +13,7 @@ https://tools.ietf.org/html/rfc4021
 package gmail
 
 import (
+	"errors"
 	"fmt"
 	"github.com/vcollak/GmailContacts/db"
 	"github.com/vcollak/GmailContacts/utils"
@@ -27,13 +28,23 @@ import (
 type Gmail struct {
 	knownEmails []string
 	db          *mongo.MongoDB
+	svc         *gmail.Service
 }
 
-//creates a new mongo DB connection
-func (g *Gmail) NewGmail(knownEmails []string, db *mongo.MongoDB) {
+//creates a new gmail connection
+func (g *Gmail) NewGmail(knownEmails []string, db *mongo.MongoDB) error {
 
 	g.knownEmails = knownEmails
 	g.db = db
+
+	err := errors.New("")
+	g.svc, err = g.getGmailClient()
+	if err != nil {
+		log.Fatal("Unable to access Gmail. Error:", err)
+		return err
+	} else {
+		return nil
+	}
 
 }
 
@@ -81,9 +92,12 @@ func (g *Gmail) saveHeaderFields(headerValue string) {
 			email := v.Address
 
 			if !g.isKnownEmail(email) {
+
+				err := errors.New("")
 				err = g.db.SetContact(name, email)
+
 				if err != nil {
-					log.Println("Unable to save:", email)
+					log.Println("Unable to save email:", email)
 				}
 			} else {
 				log.Println("Known email. Ignoring:", email)
@@ -97,11 +111,6 @@ func (g *Gmail) ProcessMessages() {
 	//close the sessions at the end
 	defer g.db.Close()
 
-	svc, err := g.getGmailClient()
-	if err != nil {
-		log.Fatal("Unable to access Gmail. Error:", err)
-	}
-
 	//get messages
 	pageToken := ""
 	firstMessage := true
@@ -113,11 +122,11 @@ func (g *Gmail) ProcessMessages() {
 
 		if lastDate == "" {
 			log.Println("Retrieving all messages.")
-			req = svc.Users.Messages.List("me")
+			req = g.svc.Users.Messages.List("me")
 
 		} else {
 			log.Println("Retrieving messages starting on", lastDate)
-			req = svc.Users.Messages.List("me").Q("after: " + lastDate)
+			req = g.svc.Users.Messages.List("me").Q("after: " + lastDate)
 		}
 
 		if pageToken != "" {
@@ -134,7 +143,7 @@ func (g *Gmail) ProcessMessages() {
 		log.Printf("Processing %v messages...\n", len(r.Messages))
 		for _, m := range r.Messages {
 
-			msg, err := svc.Users.Messages.Get("me", m.Id).Do()
+			msg, err := g.svc.Users.Messages.Get("me", m.Id).Do()
 			if err != nil {
 				log.Printf("Unable to retrieve message %v: %v", m.Id, err)
 				continue
@@ -154,9 +163,9 @@ func (g *Gmail) ProcessMessages() {
 				currentDate := lastMessageRetrievedDate.Format("2006/01/02")
 				err = g.db.SetLastDate(currentDate)
 				if err != nil {
-					log.Println("Unable to save:", currentDate)
+					log.Println("Unable to save last message date:", currentDate)
 				} else {
-					log.Println("Saved:", currentDate)
+					log.Println("Saved last message date:", currentDate)
 					firstMessage = false
 				}
 

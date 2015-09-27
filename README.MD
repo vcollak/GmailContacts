@@ -1,6 +1,6 @@
 # Google Contacts
 
-Utility that will extract all contacts from Gmail emails. It takes From, To, and Cc fields and saves them into a MongoDB database. Each time the utility is executed it will scan only new email (the email the utility has not processes yet) and add the contact as a new contact (if it's not already in the DB).
+Utility that will extract all contacts from Gmail emails. It takes From, To, and Cc fields and saves them into a MongoDB database. Each time the utility is executed it will scan only new email (the email the utility has not processed yet based on the last date the utility was executed) and add the contact as a new entry in the DB (if it's not already in the DB).
 
 ### Parsed fields from email:
 The utility parses below fields from email:
@@ -12,28 +12,48 @@ The utility parses below fields from email:
 If the email already exists in the DB, the utility will ignore it and not add or update it. Otherwise it will add it.
 
 
-### DB Fields:
-The utility saves below DB columns:
+### DB Collections:
+The utility creates and saves data into bellow collections:
 
-Contacts
-- email (from To, From, Cc)
-- name (name of the contact)
+##### Contacts
+Stores all parsed emails. Has these fields:
+- email -  the rmail from To, From, Cc fields
+- name -  name of the contact
+- account - name of the account. The account represents the unique field for a user. It's exits mostly so in the future this can be a multi-tenant system.
 
-Settings
-- lastSaved - last message date the utility processed. It uses message internalDate field from Gmail. The internal message creation timestamp (epoch ms), which determines ordering in the inbox. For normal SMTP-received email, this represents the time the message was originally accepted by Google, which is more reliable than the Date header. However, for API-migrated mail, it can be configured by client to be based on the Date header. This is used to we only check messages after this date and don't constantly check the entire mailbox.
-- account - the acocunt name for the setting
+#### Settings
+Settings collection stores the last date when we parsed the email. It has these fields:
+- saved - last date the utility processed email. This is used so we only check messages after this date and don't constantly check the entire mailbox.
+- account - the account name for the setting
 
 
 
 ## Getting Started
 
-Run the GmailContacts utility.
+
+### Configure
+
+Cnfigure known emails and Mongo constants in main.go:
+
+    // This is the list of emails to ignore when parsing
+    var knownEmails = []string{"vlad@collak.net"}
+
+    //these are the DB (Mongo settings)
+    const (
+        server      = "127.0.0.1"         //DB server address
+        dbName      = "GmailContacts"     //DB name
+        accountName = "vlad@collak.net"   //the user's account name
+    )
 
 
-    $ ./GmailContacts
+### Run
+Run the GmailContacts utility using go:
+
+    $ go run main.go
 
 
-Once it starts, the utility will first check for security credentials. Specifically, it will ask open a specific link in a browser. The page will ask the user to allow the utility to access Gmail. Once approved the user needs to paste the token back into the utility.
+Once it starts, the utility will first check for security credentials. Specifically, it will ask the user to open a specific link in a browser. The page will ask the user to allow the utility to access Gmail. Once approved the user needs to paste the token back into the utility.
+
 
 
     #########################
@@ -46,6 +66,26 @@ Once it starts, the utility will first check for security credentials. Specifica
 
     Paste the token here:4/CdflaksdjhfaldkfhaiC9mWGdfadhlfhaslfasdkdasd
 
+Afterwards the utility will scan user's Gmail, extract the emails and save them into the Mongo DB collection (collection configured as "dbName"). While scanning it will print a log similar to below:
+
+    2015/09/27 17:02:51 Starting...
+    2015/09/27 17:02:51 Did not find last saved for: vlad@collak.net
+    2015/09/27 17:02:51 Retrieving all messages.
+    2015/09/27 17:03:03 --------------
+    2015/09/27 17:03:03 Processing 100 messages...
+    2015/09/27 17:03:05 2015-09-27 16:02:31 -0500 CDT
+    2015/09/27 17:03:05 Saved last message date: 2015/09/27
+    2015/09/27 17:03:05 From:Twitter <info@twitter.com>
+    2015/09/27 17:03:05 To:OpenKloud <vlad@openkloud.com>
+    2015/09/27 17:03:05 Known email. Ignoring: vlad@openkloud.com
+    2015/09/27 17:03:05 Subject:Follow Khloé, Blake Shelton and YouTube on Twitter!
+
+    2015/09/27 17:03:07 2015-09-27 15:10:06 -0500 CDT
+    2015/09/27 17:03:07 From:Houston Robotics Club <info@meetup.com>
+    2015/09/27 17:03:07 To:vlad@collak.net
+    2015/09/27 17:03:07 Known email. Ignoring: vlad@collak.net
+    2015/09/27 17:03:07 Subject:Saturday: Join 5 Robot Nerds at "Telepresence Robot Project Meetup"
+
 
 Resources
 -------
@@ -57,7 +97,7 @@ https://tools.ietf.org/html/rfc4021
 
 Credits
 -------
-VCImage based on on TJViewController created by Travis Jeffery on 2012-08-06.
+Based on Google API samples.
 
 
 Contact
@@ -68,7 +108,7 @@ Follow Vladimir Collak on Twitter @vcollak
 License
 -------
 
-Copyright (c) 2013 Vladimir Collak
+Copyright (c) 2015 Vladimir Collak
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

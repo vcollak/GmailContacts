@@ -56,6 +56,7 @@ func (m *MongoDB) NewMongo(server string, db string, accountName string) error {
 	} else {
 		m.settings.collection = m.session.DB(m.db).C(m.settings.collectionName)
 		m.contacts.collection = m.session.DB(m.db).C(m.contacts.collectionName)
+
 	}
 
 	return nil
@@ -86,7 +87,18 @@ func (m *MongoDB) SetLastDate(lastSaved string) error {
 	change := bson.M{"$set": bson.M{"saved": lastSaved}}
 	err := m.settings.collection.Update(colQuerier, change)
 	if err != nil {
-		return err
+
+		//unable to update. let's insert
+		setting := &Setting{}
+		setting.Account = m.accountName
+		setting.Saved = lastSaved
+
+		err := errors.New("")
+		err = m.settings.collection.Insert(setting)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil
@@ -99,7 +111,7 @@ func (m *MongoDB) SetContact(name string, email string) error {
 	//find the contact
 	result := Contact{}
 	err := m.contacts.collection.Find(bson.M{"email": email}).One(&result)
-	log.Println("Found contact:", result)
+
 	if err != nil {
 
 		//insert the contact
@@ -108,6 +120,7 @@ func (m *MongoDB) SetContact(name string, email string) error {
 		contact.Email = email
 		contact.Account = m.accountName
 
+		err := errors.New("")
 		err = m.contacts.collection.Insert(contact)
 		if err != nil {
 			return err
