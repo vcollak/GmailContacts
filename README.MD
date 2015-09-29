@@ -1,6 +1,6 @@
 # Google Contacts
 
-The app will extract all contacts from Gmail emails. It takes From, To, and Cc fields and saves them into a MongoDB database. Each time the app is executed it will only scan new emails and add them omto a DB (if it's not in DB already).
+The app will extract all contacts from Gmail emails. It takes From, To, and Cc fields and saves them into a MongoDB database. Each time the app is executed it will only scan new emails and add them into a DB (if it's not in DB already).
 
 #### Parsed fields from email
 The utility parses below fields from email:
@@ -43,7 +43,9 @@ To run the app quickstart, you'll need:
 
 Use Git to get the code:
 
-        $ git clone https://github.com/vcollak/GmailContacts
+
+
+        $ git clone https://github.com/vcollak/GmailContacts.git
         Cloning into 'gmailcontacts'...
         remote: Counting objects: 87, done.
         remote: Compressing objects: 100% (84/84), done.
