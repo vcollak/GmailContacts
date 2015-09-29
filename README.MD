@@ -43,7 +43,7 @@ To run the app quickstart, you'll need:
 
 Use Git to get the code:
 
-        $ git clone https://vcollak@bitbucket.org/vcollak/gmailcontacts.git
+        $ git clone https://github.com/vcollak/GmailContacts
         Cloning into 'gmailcontacts'...
         remote: Counting objects: 87, done.
         remote: Compressing objects: 100% (84/84), done.
@@ -63,16 +63,14 @@ Use Git to get the code:
 
 ### 3. Configure the app
 
-Configure known emails and Mongo constants in main.go:
+Configure known emails and Mongo constants in main.go. The known emails is used to ignore any known emails that you don't want to add to the DB. Because we are parsing To, many of the emails may be your actual email. It would be good to simply ignore it. The **accountName** does not have to be the same email, but it would not hurt to make it the same email.
 
-    // This is the list of emails to ignore when parsing
-    var knownEmails = []string{"vlad@collak.net"}
+    var knownEmails = []string{"my@email.com"}
 
-    //these are the DB (Mongo settings)
     const (
-        server      = "127.0.0.1"         //DB server address
-        dbName      = "GmailContacts"     //DB name
-        accountName = "vlad@collak.net"   //the user's account name
+      server      = "127.0.0.1"     //DB server address
+      dbName      = "GmailContacts" //DB name
+      accountName = "my@email.com"  //the user's account name
     )
 
 
@@ -121,6 +119,10 @@ Afterwards the utility will scan user's Gmail, extract the emails and save them 
     2015/09/27 17:03:07 Subject:Saturday: Join 5 Robot Nerds at "Telepresence Robot Project Meetup"
 
 
+### 5. View the data
+Parsed emails from TO, CC, and FROM will be saved into the Mongo DB.
+
+
 Troubleshooting
 --------
 
@@ -155,7 +157,9 @@ Based on Google API samples.
 
 Contact
 -------
-Follow Vladimir Collak on Twitter @vcollak
+Follow Vladimir Collak on Twitter [@vcollak](https://twitter.com/vcollak)
+
+Blog: [www.collak.net](http://www.collak.net)
 
 
 The MIT License
