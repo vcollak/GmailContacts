@@ -1,39 +1,39 @@
 # Google Contacts
 
-Utility that will extract all contacts from Gmail emails. It takes From, To, and Cc fields and saves them into a MongoDB database. Each time the utility is executed it will scan only new email (the email the utility has not processed yet based on the last date the utility was executed) and add the contact as a new entry in the DB (if it's not already in the DB).
+The app will extract all contacts from Gmail emails. It takes From, To, and Cc fields and saves them into a MongoDB database. Each time the app is executed it will only scan new emails and add them omto a DB (if it's not in DB already).
 
-### Parsed fields from email:
+#### Parsed fields from email
 The utility parses below fields from email:
 
-- To - to email address
-- From - from
-- Cc - Cc
+- **To** - To email address
+- **From** - From
+- **Cc** - CC
 
-If the email already exists in the DB, the utility will ignore it and not add or update it. Otherwise it will add it.
+If the email already exists in the DB, the app will ignore it and not add or update it. Otherwise it will add it.
 
 
-### DB Collections:
-The utility creates and saves data into bellow collections:
+#### DB Collections
+The utility creates and saves data into bellow MongoDB collections:
 
-##### Contacts
+##### Contacts Collection
 Stores all parsed emails. Has these fields:
-- email -  the rmail from To, From, Cc fields
-- name -  name of the contact
-- account - name of the account. The account represents the unique field for a user. It's exits mostly so in the future this can be a multi-tenant system.
+- **email** -  the rmail from To, From, Cc fields
+- **name** -  name of the contact
+- **account** - name of the account. The account represents the unique field that groups all parsed contacts. It's exits mostly so in the future this can be a multi-tenant system.
 
-#### Settings
+##### Settings Collection
 Settings collection stores the last date when we parsed the email. It has these fields:
-- saved - last date the utility processed email. This is used so we only check messages after this date and don't constantly check the entire mailbox.
-- account - the account name for the setting
+- **saved** - last date the utility processed email. This is used so we only check messages after this date and don't constantly check the entire mailbox.
+- **account** - the account name for the setting
 
 
 
 ## Getting Started
 
 
-### Configure
+### Configure the app
 
-Cnfigure known emails and Mongo constants in main.go:
+Configure known emails and Mongo constants in main.go:
 
     // This is the list of emails to ignore when parsing
     var knownEmails = []string{"vlad@collak.net"}
@@ -44,6 +44,11 @@ Cnfigure known emails and Mongo constants in main.go:
         dbName      = "GmailContacts"     //DB name
         accountName = "vlad@collak.net"   //the user's account name
     )
+
+
+### Configure Google app
+
+The app uses Gmail API. To authenticate to this API the app needs to first be added to Google's Developer Console.
 
 
 ### Run
@@ -85,6 +90,25 @@ Afterwards the utility will scan user's Gmail, extract the emails and save them 
     2015/09/27 17:03:07 To:vlad@collak.net
     2015/09/27 17:03:07 Known email. Ignoring: vlad@collak.net
     2015/09/27 17:03:07 Subject:Saturday: Join 5 Robot Nerds at "Telepresence Robot Project Meetup"
+
+
+Troubleshooting
+--------
+
+#### Mongo Error
+If you get the below error, make sure your mongo DB is started and listens to the specified server address.  
+
+
+    2015/09/28 19:00:59 Starting...
+    2015/09/28 19:01:11 Unable to connect to DB. Server: 127.0.0.1  dbName: GmailContactsA
+    2015/09/28 19:01:11 Exiting...
+
+#### Gmail Error
+If you get the bellow error, make sure you configure the app within google developer console and download the client_secret.json.
+
+    2015/09/28 19:00:59 Starting...
+    2015/09/28 18:57:13 Unable to access Gmail. Error:open client_secret.json: no such file or directory
+    exit status 1
 
 
 Resources
