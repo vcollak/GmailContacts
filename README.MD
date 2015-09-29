@@ -84,7 +84,12 @@ Run the GmailContacts app using go:
     $ go run main.go
 
 
-Once the app starts, the utility will first check for security credentials. Specifically, it will ask the user to open a specific link in a browser. The page will ask the user to allow the utility to access Gmail. Once approved, the user needs to paste the token back into the utility. The utility will then save the Gmail access token into ".credentials" directory.
+The first time the app starts, the utility will first check for security credentials. Specifically, it will ask the user to open a specific link in a browser. The page will ask the user to allow the utility to access Gmail. Once approved, the user needs to paste the token back into the utility. The utility will then save the Gmail access token into ".credentials" directory.
+
+![Permissions](images/perm.png)
+
+![Permissions](images/token.png)
+
 
 
 
