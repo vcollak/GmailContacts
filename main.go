@@ -1,168 +1,56 @@
 /*
 
-App that connects to Gmail via gmail api and lists all messages and their To, From, Cc
+Copyright 2015 Vladimir Collak
 
-Resources:
 
-https://developers.google.com/gmail/api/quickstart/go
-https://console.developers.google.com
-https://godoc.org/google.golang.org/api/gmail/v1
-https://tools.ietf.org/html/rfc4021
-
+Utility that will extract all contacts from Gmail emails. It takes From, To,
+and Cc fields and saves them into a MongoDB database. Each time the utility
+is executed it will scan only new email (the email the utility
+has not processes yet) and add the contact as a new contact
+(if it's not already in the DB).
 
 */
 
 package main
 
 import (
-	"fmt"
+	"errors"
+	"github.com/vcollak/GmailContacts/db"
+	"github.com/vcollak/GmailContacts/gmail"
 	"log"
-	"net/mail"
-	"strconv"
-	"strings"
-	"time"
 )
-
-//converts the UNIX epoch string to a time
-func msToTime(ms string) (time.Time, error) {
-	msInt, err := strconv.ParseInt(ms, 10, 64)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return time.Unix(0, msInt*int64(time.Millisecond)), nil
-}
-
-//returns the last date we processed
-func getLastDate() string {
-
-	//set the last known date
-	layout := "2006/01/02"              //just a format date
-	lastKnownDateString := "2015/08/15" //the date we want to set
-	lastKnownDate, err := time.Parse(layout, lastKnownDateString)
-
-	if err != nil {
-		log.Fatalln("Error parsing dates", err)
-	}
-
-	//convert the date to string
-	lastDateString := strconv.Itoa(lastKnownDate.Year()) + "/" + strconv.Itoa(int(lastKnownDate.Month())) + "/" + strconv.Itoa(lastKnownDate.Day())
-
-	return lastDateString
-
-}
-
-//see if the email is one of the known emails
-func isKnownEmail(email string) bool {
-
-	knownEmails := []string{"vlad@collak.net", "vcollak@gmail.com", "vcollak@ignitedev.com", "info@slovacihouston.com", "vlad@openkloud.com"}
-	for _, e := range knownEmails {
-
-		if strings.ToUpper(email) == strings.ToUpper(e) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func parseAndSave(headerValue string) {
-
-	e, err := mail.ParseAddress(headerValue)
-	if err != nil {
-		log.Println("Unable to parse:", headerValue)
-	} else {
-
-		name := e.Name
-		email := e.Address
-
-		if !isKnownEmail(email) {
-			saveContact(name, email)
-		}
-
-	}
-}
 
 func main() {
 
-	svc, err := getGmailClient()
+	var knownEmails = []string{"vlad@collak.net", "vcollak@gmail.com", "vcollak@ignitedev.com",
+		"info@slovacihouston.com", "vlad@openkloud.com", "vladimir.collak@ignitemediallc.com",
+		"vladimir.collak@ignitemediahosting.com"}
+
+	const (
+		server      = "127.0.0.1"       //DB server address
+		dbName      = "GmailContactsA"  //DB name
+		accountName = "vlad@collak.net" //the user's account name
+	)
+
+	log.Println("Starting...")
+
+	//mongo DB
+	var mongo = new(mongo.MongoDB)
+	err := mongo.NewMongo(server, dbName, accountName)
 	if err != nil {
-		log.Fatal("Error:", err)
+		log.Printf("Unable to connect to DB. Server: %s  dbName: %s", server, dbName)
+		log.Printf("Exiting...")
+		return
 	}
 
-	//get messages
-	pageToken := ""
-	for {
-
-		req := svc.Users.Messages.List("me").Q("after: " + getLastDate())
-		if pageToken != "" {
-			req.PageToken(pageToken)
-		}
-		r, err := req.Do()
-
-		if err != nil {
-			log.Fatalf("Unable to retrieve messages: %v", err)
-		}
-
-		log.Printf("--------------")
-		log.Printf("Processing %v messages...\n", len(r.Messages))
-		for _, m := range r.Messages {
-
-			msg, err := svc.Users.Messages.Get("me", m.Id).Do()
-			if err != nil {
-				log.Fatalf("Unable to retrieve message %v: %v", m.Id, err)
-			}
-
-			internalDate, err := msToTime(strconv.FormatInt(msg.InternalDate, 10))
-			if err != nil {
-				log.Fatalln("Unable to parse message date", err)
-			}
-
-			//message date
-			fmt.Println(internalDate)
-
-			for _, h := range msg.Payload.Headers {
-
-				//prints all header values
-				//fmt.Println(h.Name + ":" + h.Value)
-
-				if h.Name == "From" {
-
-					fmt.Println("From:" + h.Value)
-					parseAndSave(h.Value)
-
-				} else if h.Name == "To" {
-
-					fmt.Println("To:" + h.Value)
-					parseAndSave(h.Value)
-
-				} else if h.Name == "Cc" {
-
-					fmt.Println("Cc:" + h.Value)
-					parseAndSave(h.Value)
-				}
-
-			}
-
-			fmt.Println("")
-
-		}
-
-		if r.NextPageToken == "" {
-			break
-		}
-		pageToken = r.NextPageToken
-
-		//break
+	//gmail
+	err = errors.New("")
+	var gmail = new(gmail.Gmail)
+	err = gmail.NewGmail(knownEmails, mongo)
+	if err != nil {
+		log.Printf("Unable to connect to Gmail. Error:%s", err)
 
 	}
-
-	/*
-		//set the last known date
-		layout := "2006/01/02" //just a format date
-		lastKnownDateString := time.Now().String()
-		lastKnownDate, err := time.Parse(layout, lastKnownDateString)
-		saveLastDate(lastKnownDate.String())
-	*/
+	gmail.ProcessMessages()
 
 }
