@@ -30,8 +30,38 @@ Settings collection stores the last date when we parsed the email. It has these 
 
 ## Getting Started
 
+### 1. Prerequesites
+To run the app quickstart, you'll need:
 
-### Configure the app
+- [Go](https://golang.org/), latest version recommended.
+- [Git](https://git-scm.com/), latest version recommended.
+- Access to the internet and a web browser.
+- A Google account with Gmail enabled.
+
+
+### 2. Get the Code
+
+Use Git to get the code:
+
+        $ git clone https://vcollak@bitbucket.org/vcollak/gmailcontacts.git
+        Cloning into 'gmailcontacts'...
+        remote: Counting objects: 87, done.
+        remote: Compressing objects: 100% (84/84), done.
+        remote: Total 87 (delta 42), reused 0 (delta 0)
+        Unpacking objects: 100% (87/87), done.
+        Checking connectivity... done.
+
+
+
+### 2. Enable Gmail API
+1.  Use this [wizard](https://console.developers.google.com/start/api?id=gmail) to create or select a project in the Google  - - Developers Console and automatically enable the API. Click the **Go to credentials** button to continue.
+2. At the top of the page, select the **OAuth consent screen** tab. Select an **Email address**, enter a **Product name** if not already set, and click the **Save** button.
+3. Back on the **Credentials** tab, click the **Add credentials** button and select **OAuth 2.0 client ID**.
+4. Select the application type **Other** and click the **Create** button.
+5. Click **OK** to dismiss the resulting dialog.
+6. Click the  **(Download JSON)** button to the right of the client ID. Move this file to the same directory where you downloaded the code and rename it to client_secret.json.
+
+### 3. Configure the app
 
 Configure known emails and Mongo constants in main.go:
 
@@ -46,18 +76,17 @@ Configure known emails and Mongo constants in main.go:
     )
 
 
-### Configure Google app
 
-The app uses Gmail API. To authenticate to this API the app needs to first be added to Google's Developer Console.
+### 4. Start MongoDB
+Make sure you start your MongoDB (or the utility has access to it). If the DB does not exist, it will create it and all the necessary collections. (The current version of the script does not authenticate to Mongo DB and basically just assumes localhost access without credentials.)
 
-
-### Run
-Run the GmailContacts utility using go:
+### 5. Run the app
+Run the GmailContacts app using go:
 
     $ go run main.go
 
 
-Once it starts, the utility will first check for security credentials. Specifically, it will ask the user to open a specific link in a browser. The page will ask the user to allow the utility to access Gmail. Once approved the user needs to paste the token back into the utility.
+Once the app starts, the utility will first check for security credentials. Specifically, it will ask the user to open a specific link in a browser. The page will ask the user to allow the utility to access Gmail. Once approved, the user needs to paste the token back into the utility. The utility will then save the Gmail access token into ".credentials" directory.
 
 
 
@@ -129,7 +158,7 @@ Contact
 Follow Vladimir Collak on Twitter @vcollak
 
 
-License
+The MIT License
 -------
 
 Copyright (c) 2015 Vladimir Collak
@@ -142,8 +171,7 @@ copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in
-the documentation of any redistributions of the template files themselves
-(but not in projects built using the templates).
+all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
