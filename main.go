@@ -22,12 +22,21 @@ import (
 
 func main() {
 
+<<<<<<< HEAD
 	var knownEmails = []string{"vcollak@ignitedev.com"}
 
 	const (
 		server      = "127.0.0.1"                    //DB server address
 		dbName      = "GmailContacts"                //DB name
 		accountName = "vladimir.collak@ceremity.com" //the user's account name
+=======
+	var knownEmails = []string{"my@email.com"}
+
+	const (
+		server      = "127.0.0.1"     //DB server address
+		dbName      = "GmailContacts" //DB name
+		accountName = "my@email.com"  //the user's account name
+>>>>>>> 4e745dbab948f8b3a4a750fcc0562f49e7a08818
 	)
 
 	log.Println("Starting...")
